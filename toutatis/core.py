@@ -80,7 +80,6 @@ def advanced_lookup(username):
             "X-IG-App-ID": "124024574287414",
             "Accept-Encoding": "gzip, deflate",
             "Host": "i.instagram.com",
-            # "X-FB-HTTP-Engine": "Liger",
             "Connection": "keep-alive",
             "Content-Length": str(len(data))
         },
@@ -113,7 +112,7 @@ def main():
     print("Informations about     : " + infos["username"])
     print("userID                 : " + infos["userID"])
     print("Full Name              : " + infos["full_name"])
-    print("Verified               : " + str(infos['is_verified']) + " | Is buisness Account : " + str(
+    print("Verified               : " + str(infos['is_verified']) + " | Is business Account : " + str(
         infos["is_business"]))
     print("Is private Account     : " + str(infos["is_private"]))
     print(
@@ -169,3 +168,6 @@ def main():
                 print("No obfuscated phone found")
     print("-" * 24)
     print("Profile Picture        : " + infos["hd_profile_pic_url_info"]["url"])
+
+if _name_ == "_main_":
+    main()
