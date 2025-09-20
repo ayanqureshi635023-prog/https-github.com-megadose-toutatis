@@ -1,4 +1,3 @@
-import argparse
 import requests
 from urllib.parse import quote_plus
 from json import dumps, decoder
@@ -6,7 +5,6 @@ from json import dumps, decoder
 import phonenumbers
 from phonenumbers.phonenumberutil import (
     region_code_for_country_code,
-    region_code_for_number,
 )
 import pycountry
 
@@ -22,8 +20,13 @@ def getUserId(username, sessionsId):
         if api.status_code == 404:
             return {"id": None, "error": "User not found"}
 
-        id = api.json()["data"]['user']['id']
-        return {"id": id, "error": None}
+        data = api.json().get("data")
+        if not data:
+            return {"id": None, "error": "User not found"}
+        _id = data.get("user", {}).get("id")
+        if not _id:
+            return {"id": None, "error": "User not found"}
+        return {"id": _id, "error": None}
 
     except decoder.JSONDecodeError:
         return {"id": None, "error": "Rate limit"}
@@ -93,7 +96,84 @@ def advanced_lookup(username):
         return ({"user": None, "error": "rate limit"})
 
 
+def process_request(session_id, user_id=None, username=None):
+    assert user_id or username, "You must provide either a username or an ID"
+    search_type = "id" if user_id else "username"
+    search = user_id or username
+
+    infos = getInfo(search, session_id, searchType=search_type)
+    if infos.get("error"):
+        exit(infos["error"])
+
+    infos = infos["user"]
+    assert isinstance(infos, dict), "User not found"
+
+    print("Informations about     : " + infos.get("username", "N/A"))
+    print("userID                 : " + infos.get("userID", "N/A"))
+    print("Full Name              : " + infos.get("full_name", "N/A"))
+    print("Verified               : " + str(infos.get('is_verified', False)) + " | Is buisness Account : " + str(
+        infos.get("is_business", False)))
+    print("Is private Account     : " + str(infos.get("is_private", False)))
+    print(
+        "Follower               : " + str(infos.get("follower_count", 0)) + " | Following : " + str(infos.get("following_count", 0)))
+    print("Number of posts        : " + str(infos.get("media_count", 0)))
+    if infos.get("external_url"):
+        print("External url           : " + infos.get("external_url"))
+    print("IGTV posts             : " + str(infos.get("total_igtv_videos", 0)))
+    biography = infos.get("biography", "")
+    print("Biography              : " + f"""\n{" " * 25}""".join(biography.split("\n")))
+    print("Linked WhatsApp        : " + str(infos.get("is_whatsapp_linked", False)))
+    print("Memorial Account       : " + str(infos.get("is_memorialized", False)))
+    print("New Instagram user     : " + str(infos.get("is_new_to_instagram", False)))
+
+    if infos.get("public_email"):
+        print("Public Email           : " + infos.get("public_email"))
+
+    public_phone_number = infos.get("public_phone_number")
+    if public_phone_number and str(public_phone_number):
+        phonenr = "+" + str(infos.get("public_phone_country_code", "")) + " " + str(public_phone_number)
+        try:
+            pn = phonenumbers.parse(phonenr)
+            countrycode = region_code_for_country_code(pn.country_code)
+            country = pycountry.countries.get(alpha_2=countrycode)
+            phonenr = phonenr + " ({}) ".format(country.name)
+        except:  # except what ??
+            pass  # pass what ??
+        print("Public Phone number    : " + phonenr)
+
+    other_infos = advanced_lookup(infos.get("username", ""))
+
+    if other_infos.get("error") == "rate limit":
+        print("Rate limit please wait a few minutes before you try again")
+
+    elif other_infos.get("user") and other_infos["user"].get("message"):
+        if other_infos["user"]["message"] == "No users found":
+            print("The lookup did not work on this account")
+        else:
+            print(other_infos["user"]["message"])
+
+    else:
+        if other_infos.get("user"):
+            obfuscated_email = other_infos["user"].get("obfuscated_email")
+            if obfuscated_email:
+                print("Obfuscated email       : " + obfuscated_email)
+            else:
+                print("No obfuscated email found")
+
+            obfuscated_phone = other_infos["user"].get("obfuscated_phone")
+            if obfuscated_phone and str(obfuscated_phone):
+                print("Obfuscated phone       : " + str(obfuscated_phone))
+            else:
+                print("No obfuscated phone found")
+    print("-" * 24)
+    hd_profile_pic = infos.get("hd_profile_pic_url_info", {})
+    profile_pic_url = hd_profile_pic.get("url", "N/A")
+    print("Profile Picture        : " + profile_pic_url)
+
+
 def main():
+    import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', '--sessionid', help="Instagram session ID", required=True)
     group = parser.add_mutually_exclusive_group(required=True)
@@ -101,71 +181,8 @@ def main():
     group.add_argument('-i', '--id', help="User ID")
     args = parser.parse_args()
 
-    sessionsId = args.sessionid
-    search_type = "id" if args.id else "username"
-    search = args.id or args.username
-    infos = getInfo(search, sessionsId, searchType=search_type)
-    if not infos.get("user"):
-        exit(infos["error"])
+    process_request(session_id=args.sessionid, username=args.username, user_id=args.id)
 
-    infos = infos["user"]
 
-    print("Informations about     : " + infos["username"])
-    print("userID                 : " + infos["userID"])
-    print("Full Name              : " + infos["full_name"])
-    print("Verified               : " + str(infos['is_verified']) + " | Is buisness Account : " + str(
-        infos["is_business"]))
-    print("Is private Account     : " + str(infos["is_private"]))
-    print(
-        "Follower               : " + str(infos["follower_count"]) + " | Following : " + str(infos["following_count"]))
-    print("Number of posts        : " + str(infos["media_count"]))
-    # print("Number of tag in posts : "+str(infos["following_tag_count"]))
-    if infos["external_url"]:
-        print("External url           : " + infos["external_url"])
-    print("IGTV posts             : " + str(infos["total_igtv_videos"]))
-    print("Biography              : " + (f"""\n{" " * 25}""").join(infos["biography"].split("\n")))
-    print("Linked WhatsApp        : " + str(infos["is_whatsapp_linked"]))
-    print("Memorial Account       : " + str(infos["is_memorialized"]))
-    print("New Instagram user     : " + str(infos["is_new_to_instagram"]))
-
-    if "public_email" in infos.keys():
-        if infos["public_email"]:
-            print("Public Email           : " + infos["public_email"])
-
-    if "public_phone_number" in infos.keys():
-        if str(infos["public_phone_number"]):
-            phonenr = "+" + str(infos["public_phone_country_code"]) + " " + str(infos["public_phone_number"])
-            try:
-                pn = phonenumbers.parse(phonenr)
-                countrycode = region_code_for_country_code(pn.country_code)
-                country = pycountry.countries.get(alpha_2=countrycode)
-                phonenr = phonenr + " ({}) ".format(country.name)
-            except:  # except what ??
-                pass  # pass what ??
-            print("Public Phone number    : " + phonenr)
-
-    other_infos = advanced_lookup(infos["username"])
-
-    if other_infos["error"] == "rate limit":
-        print("Rate limit please wait a few minutes before you try again")
-
-    elif "message" in other_infos["user"].keys():
-        if other_infos["user"]["message"] == "No users found":
-            print("The lookup did not work on this account")
-        else:
-            print(other_infos["user"]["message"])
-
-    else:
-        if "obfuscated_email" in other_infos["user"].keys():
-            if other_infos["user"]["obfuscated_email"]:
-                print("Obfuscated email       : " + other_infos["user"]["obfuscated_email"])
-            else:
-                print("No obfuscated email found")
-
-        if "obfuscated_phone" in other_infos["user"].keys():
-            if str(other_infos["user"]["obfuscated_phone"]):
-                print("Obfuscated phone       : " + str(other_infos["user"]["obfuscated_phone"]))
-            else:
-                print("No obfuscated phone found")
-    print("-" * 24)
-    print("Profile Picture        : " + infos["hd_profile_pic_url_info"]["url"])
+if __name__ == "__main__":
+    main()
