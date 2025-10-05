@@ -122,7 +122,7 @@ def main():
     # print("Number of tag in posts : "+str(infos["following_tag_count"]))
     if infos["external_url"]:
         print("External url           : " + infos["external_url"])
-    print("IGTV posts             : " + str(infos["total_igtv_videos"]))
+    print("IGTV posts             : " + str(infos.get("total_igtv_videos", 0)))
     print("Biography              : " + (f"""\n{" " * 25}""").join(infos["biography"].split("\n")))
     print("Linked WhatsApp        : " + str(infos["is_whatsapp_linked"]))
     print("Memorial Account       : " + str(infos["is_memorialized"]))
@@ -131,6 +131,10 @@ def main():
     if "public_email" in infos.keys():
         if infos["public_email"]:
             print("Public Email           : " + infos["public_email"])
+        else:
+            print("Public Email           : None")
+    else:
+        print("Public Email           : Not available")
 
     if "public_phone_number" in infos.keys():
         if str(infos["public_phone_number"]):
@@ -160,7 +164,9 @@ def main():
             if other_infos["user"]["obfuscated_email"]:
                 print("Obfuscated email       : " + other_infos["user"]["obfuscated_email"])
             else:
-                print("No obfuscated email found")
+                print("Obfuscated email       : None")
+        else:
+            print("Obfuscated email       : Not available")
 
         if "obfuscated_phone" in other_infos["user"].keys():
             if str(other_infos["user"]["obfuscated_phone"]):
