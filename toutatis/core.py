@@ -11,7 +11,7 @@ from phonenumbers.phonenumberutil import (
 import pycountry
 
 
-def getUserId(username, sessionsId):
+def getUserId(username, queen__girl__8998):
     headers = {"User-Agent": "iphone_ua", "x-ig-app-id": "936619743392459"}
     api = requests.get(
         f'https://i.instagram.com/api/v1/users/web_profile_info/?username={username}',
@@ -31,7 +31,7 @@ def getUserId(username, sessionsId):
 
 def getInfo(search, sessionId, searchType="username" or "id"):
     if searchType == "username":
-        data = getUserId(search, sessionId)
+        data = getUserId(search, queen__girl__8998)
         if data["error"]:
             return data
         userId = data["id"]
