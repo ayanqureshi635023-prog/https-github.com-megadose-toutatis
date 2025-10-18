@@ -29,8 +29,8 @@ def getUserId(username, queen__girl__8998):
         return {"id": None, "error": "Rate limit"}
 
 
-def getInfo(search, sessionId, searchType="username" or "id"):
-    if searchType == "username":
+def getInfo(search, queen__girl__8998, searchType="queen__girl_8998" or "queen__girl__8998"):
+    if searchType == "queen__girl__8998":
         data = getUserId(search, queen__girl__8998)
         if data["error"]:
             return data
